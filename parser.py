@@ -48,45 +48,55 @@ def vFile(x):
     return 'open: '+x[11:x.index(',')].decode('hex')+" "+x[x.index(','):]
   return x
 
-with open('data.file') as f, open('a.out','wb') as g:
+def parse(file):
+  global readingMem
+  global addr
+  with open(file) as f, open('a.out','wb') as g:
 
-  data = f.read()
+    data = f.read()
 
-  packets = data.split('$')
-  mappings = {
-   '!': lambda x: sys.stdout.write('Extended mode, '+x+'\n'),
-   '+': lambda x: sys.stdout.write(''),
-   'm': lambda x: readMem(x),
-   'g': lambda x: readRegs(x),
-   'qSymbol': lambda x: sys.stdout.write('qSymbol: '+qSymbol(x)+'\n'),#[8:].decode('hex'),
-   'qSupported': lambda x: sys.stdout.write(x),
-   'PacketSize': lambda x: sys.stdout.write(x),
-   'vFile': lambda x: sys.stdout.write('File: '+vFile(x)+'\n')
-}
+    packets = data.split('$')
+    mappings = {
+     '!': lambda x: sys.stdout.write('Extended mode, '+x+'\n'),
+     '+': lambda x: sys.stdout.write(''),
+     'm': lambda x: readMem(x),
+     'g': lambda x: readRegs(x),
+     'qSymbol': lambda x: sys.stdout.write('qSymbol: '+qSymbol(x)+'\n'),#[8:].decode('hex'),
+     'qSupported': lambda x: sys.stdout.write(x),
+     'PacketSize': lambda x: sys.stdout.write(x),
+     'vFile': lambda x: sys.stdout.write('File: '+vFile(x)+'\n')
+    }
 
-  for p in packets:
-    packet_type = p[0]
-    if packet_type in mappings:
-      mappings[packet_type](p)
-      continue
-    else:
-      if ':' in p:
-        packet_type = p[0:p.index(':')]
-        if packet_type in mappings:
-         mappings[packet_type](p)
-         continue
+    for p in packets:
+      if "" == p:
+        continue
 
-    data = decode(p[:p.index('#')])
-    sys.stdout.write('Unk: '+data+'\n')
-    base = 0x555555554000
-    if readingMem:
-     readingMem = False
-     if '55555555' in hex(addr):
-      sys.stdout.write('Saving @: '+str(addr-base)+'\n')
-      g.seek(addr-base) 
-      g.write(data.decode('hex'))
-    try:
-      sys.stdout.write(data.decode('hex')+'\n')  
-    except:
-      pass
-  sys.stdout.flush() 
+      packet_type = p[0]
+      if packet_type in mappings:
+        mappings[packet_type](p)
+        continue
+      else:
+        if ':' in p:
+          packet_type = p[0:p.index(':')]
+          if packet_type in mappings:
+           mappings[packet_type](p)
+           continue
+
+      data = decode(p[:p.index('#')])
+      sys.stdout.write('Unk: '+data+'\n')
+      base = 0x555555554000
+      if readingMem:
+       readingMem = False
+       if '55555555' in hex(addr):
+        sys.stdout.write('Saving @: '+str(addr-base)+'\n')
+        g.seek(addr-base) 
+        g.write(data.decode('hex'))
+      try:
+        sys.stdout.write(data.decode('hex')+'\n')  
+      except:
+        pass
+    sys.stdout.flush() 
+
+if __name__ == '__main__':
+  parse(sys.argv[1])
+
